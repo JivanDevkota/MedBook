@@ -3,11 +3,17 @@ package com.nsu.medbook_backend.user.entity;
 import com.nsu.medbook_backend.common.entity.BaseEntity;
 import com.nsu.medbook_backend.common.validation.annotation.UniqueEmail;
 import com.nsu.medbook_backend.common.validation.annotation.ValidPhone;
+import com.nsu.medbook_backend.doctor.entity.Doctor;
+import com.nsu.medbook_backend.notification.entity.Notification;
+import com.nsu.medbook_backend.patient.entity.Patient;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users", uniqueConstraints = {
@@ -44,4 +50,32 @@ public class User extends BaseEntity {
     @ValidPhone
     @Column(length = 15)
     private String phone;
+
+    @NotBlank(message = "First name is required")
+    @Size(max = 50, message = "First name must not exceed 50 characters")
+    @Column(name = "first_name", nullable = false, length = 50)
+    private String firstName;
+
+    @NotBlank(message = "Last name is required")
+    @Size(max = 50, message = "Last name must not exceed 50 characters")
+    @Column(name = "last_name", nullable = false, length = 50)
+    private String lastName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Role role;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean active = true;
+
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Patient patient;
+
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Doctor doctor;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Notification> notifications = new ArrayList<>();
 }

@@ -1,0 +1,30 @@
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-dashboard',
+  standalone: true,
+  template: `
+    <div class="space-y-6">
+      <h1 class="text-2xl font-bold text-gray-800">Dashboard</h1>
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-xl border border-blue-200 bg-blue-50 p-6">
+          <p class="text-sm text-blue-600">Total Appointments</p>
+          <p class="mt-2 text-3xl font-bold text-blue-800">--</p>
+        </div>
+        <div class="rounded-xl border border-green-200 bg-green-50 p-6">
+          <p class="text-sm text-green-600">Doctors</p>
+          <p class="mt-2 text-3xl font-bold text-green-800">--</p>
+        </div>
+        <div class="rounded-xl border border-purple-200 bg-purple-50 p-6">
+          <p class="text-sm text-purple-600">Patients</p>
+          <p class="mt-2 text-3xl font-bold text-purple-800">--</p>
+        </div>
+        <div class="rounded-xl border border-amber-200 bg-amber-50 p-6">
+          <p class="text-sm text-amber-600">Revenue</p>
+          <p class="mt-2 text-3xl font-bold text-amber-800">--</p>
+        </div>
+      </div>
+    </div>
+  `,
+})
+export class DashboardComponent {}

@@ -1,0 +1,21 @@
+export const API = {
+  AUTH: {
+    LOGIN: '/auth/login',
+    REGISTER: '/auth/register',
+    REFRESH: '/auth/refresh',
+    LOGOUT: '/auth/logout',
+    ME: '/auth/me',
+  },
+  USERS: '/users',
+  DOCTORS: '/doctors',
+  PATIENTS: '/patients',
+  APPOINTMENTS: '/appointments',
+  SCHEDULES: '/schedules',
+  MEDICAL_RECORDS: '/medical-records',
+  PRESCRIPTIONS: '/prescriptions',
+  PAYMENTS: '/payments',
+  FILES: '/files',
+  DASHBOARD: '/dashboard',
+  ADMIN: '/admin',
+  NOTIFICATIONS: '/notifications',
+} as const;
