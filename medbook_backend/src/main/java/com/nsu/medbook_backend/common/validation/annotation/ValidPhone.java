@@ -1,17 +1,22 @@
 package com.nsu.medbook_backend.common.validation.annotation;
 
 import com.nsu.medbook_backend.common.validation.validator.PhoneValidator;
-import com.nsu.medbook_backend.common.validation.validator.UniqueEmailValidator;
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 
 import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 @Documented
 @Constraint(validatedBy = PhoneValidator.class)
+@Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.RECORD_COMPONENT})
+@Retention(RetentionPolicy.RUNTIME)
 public @interface ValidPhone {
 
-    String message() default "Invalid Phone number";
+    String message() default "Invalid phone number";
 
     Class<?>[] groups() default {};
 

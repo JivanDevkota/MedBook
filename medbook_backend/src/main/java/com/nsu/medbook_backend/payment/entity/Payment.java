@@ -3,16 +3,34 @@ package com.nsu.medbook_backend.payment.entity;
 import com.nsu.medbook_backend.appointment.entity.Appointment;
 import com.nsu.medbook_backend.common.entity.BaseEntity;
 import com.nsu.medbook_backend.patient.entity.Patient;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "payments")
+@Table(name = "payments", indexes = {
+        @Index(name = "idx_payments_patient", columnList = "patient_id"),
+        @Index(name = "idx_payments_appointment", columnList = "appointment_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -35,7 +53,7 @@ public class Payment extends BaseEntity {
     private PaymentStatus status = PaymentStatus.PENDING;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method", nullable = false, length = 20)
+    @Column(name = "payment_method", length = 20)
     private PaymentMethod paymentMethod;
 
     @Column(name = "transaction_reference", length = 100)

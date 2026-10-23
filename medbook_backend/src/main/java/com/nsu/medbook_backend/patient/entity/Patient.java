@@ -8,10 +8,26 @@ import com.nsu.medbook_backend.medicalrecord.entity.MedicalRecord;
 import com.nsu.medbook_backend.payment.entity.Payment;
 import com.nsu.medbook_backend.prescription.entity.Prescription;
 import com.nsu.medbook_backend.user.entity.User;
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -38,7 +54,7 @@ public class Patient extends BaseEntity {
     @Column(length = 10)
     private Gender gender;
 
-    @Size(max = 5)
+    @Size(max = 5, message = "Blood type must not exceed 5 characters")
     @Column(name = "blood_type", length = 5)
     private String bloodType;
 
@@ -46,6 +62,7 @@ public class Patient extends BaseEntity {
     @Column(length = 15)
     private String contact;
 
+    @Size(max = 500, message = "Address must not exceed 500 characters")
     @Column(length = 500)
     private String address;
 

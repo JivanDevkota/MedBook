@@ -4,17 +4,37 @@ import com.nsu.medbook_backend.common.entity.BaseEntity;
 import com.nsu.medbook_backend.doctor.entity.Doctor;
 import com.nsu.medbook_backend.medicalrecord.entity.MedicalRecord;
 import com.nsu.medbook_backend.patient.entity.Patient;
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "prescriptions")
+@Table(name = "prescriptions", indexes = {
+        @Index(name = "idx_prescriptions_patient", columnList = "patient_id"),
+        @Index(name = "idx_prescriptions_doctor", columnList = "doctor_id"),
+        @Index(name = "idx_prescriptions_medical_record", columnList = "medical_record_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -27,7 +47,7 @@ public class Prescription extends BaseEntity {
     private Long id;
 
     @NotBlank(message = "Instructions are required")
-    @Size(max = 2000)
+    @Size(max = 2000, message = "Instructions must not exceed 2000 characters")
     @Column(nullable = false, length = 2000)
     private String instructions;
 
@@ -55,6 +75,11 @@ public class Prescription extends BaseEntity {
     public void addItem(PrescriptionItem item) {
         items.add(item);
         item.setPrescription(this);
+    }
+
+    public void removeItem(PrescriptionItem item) {
+        items.remove(item);
+        item.setPrescription(null);
     }
 
     public enum PrescriptionStatus {
