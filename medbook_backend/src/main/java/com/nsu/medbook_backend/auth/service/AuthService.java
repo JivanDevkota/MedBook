@@ -1,11 +1,10 @@
 package com.nsu.medbook_backend.auth.service;
 
-import com.nsu.medbook_backend.auth.dto.AuthResponse;
+import com.nsu.medbook_backend.auth.dto.AuthSession;
 import com.nsu.medbook_backend.auth.dto.LoginRequest;
 import com.nsu.medbook_backend.auth.dto.RegisterRequest;
 import com.nsu.medbook_backend.auth.dto.UserResponse;
 import com.nsu.medbook_backend.common.exception.ConflictException;
-import com.nsu.medbook_backend.common.exception.ResourceNotFoundException;
 import com.nsu.medbook_backend.patient.entity.Patient;
 import com.nsu.medbook_backend.patient.repository.PatientRepository;
 import com.nsu.medbook_backend.security.MyUser;
@@ -33,15 +32,19 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
 
+    /**
+     * Public self-registration always creates a PATIENT account; privileged
+     * roles are provisioned exclusively through the admin module.
+     */
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public AuthSession register(RegisterRequest request) {
         String email = normalizeEmail(request.email());
 
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new ConflictException("An account with this email already exists");
         }
 
-        User user = User.builder()
+        User user = userRepository.save(User.builder()
                 .username(email)
                 .email(email)
                 .password(passwordEncoder.encode(request.password()))
@@ -50,32 +53,38 @@ public class AuthService {
                 .phone(request.phone())
                 .role(Role.PATIENT)
                 .active(true)
-                .build();
-
-        User savedUser = userRepository.save(user);
+                .build());
 
         patientRepository.save(Patient.builder()
-                .user(savedUser)
+                .user(user)
                 .contact(request.phone())
                 .build());
 
-        return buildAuthResponse(savedUser);
+        return issueSession(user);
     }
 
     @Transactional(readOnly = true)
-    public AuthResponse login(LoginRequest request) {
+    public AuthSession login(LoginRequest request) {
         String email = normalizeEmail(request.email());
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, request.password()));
 
         User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
-        return buildAuthResponse(user);
+        return issueSession(user);
     }
 
+    /**
+     * Exchanges a valid refresh token for a new session, rotating the refresh
+     * token (sliding expiry) on every exchange.
+     */
     @Transactional(readOnly = true)
-    public AuthResponse refresh(String refreshToken) {
+    public AuthSession refresh(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new BadCredentialsException("Refresh token is missing");
+        }
+
         String username;
         try {
             username = jwtTokenProvider.extractUsername(refreshToken);
@@ -85,33 +94,21 @@ public class AuthService {
 
         User user = userRepository.findByEmailIgnoreCase(username)
                 .or(() -> userRepository.findByUsername(username))
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
 
         if (!jwtTokenProvider.isRefreshTokenValid(refreshToken, new MyUser(user))) {
             throw new BadCredentialsException("Invalid or expired refresh token");
         }
 
-        return buildAuthResponse(user);
+        return issueSession(user);
     }
 
-    @Transactional(readOnly = true)
-    public UserResponse getCurrentUser(String identifier) {
-        User user = userRepository.findByEmailIgnoreCase(identifier)
-                .or(() -> userRepository.findByUsername(identifier))
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        return UserResponse.from(user);
-    }
-
-    private AuthResponse buildAuthResponse(User user) {
+    private AuthSession issueSession(User user) {
         MyUser userDetails = new MyUser(user);
-        String accessToken = jwtTokenProvider.generateAccessToken(userDetails);
-        String refreshToken = jwtTokenProvider.generateRefreshToken(userDetails);
-
-        return AuthResponse.of(
-                accessToken,
-                refreshToken,
-                jwtTokenProvider.getAccessTokenExpirationSeconds(),
-                UserResponse.from(user)
+        return new AuthSession(
+                UserResponse.from(user),
+                jwtTokenProvider.generateAccessToken(userDetails),
+                jwtTokenProvider.generateRefreshToken(userDetails)
         );
     }
 

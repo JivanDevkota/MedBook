@@ -44,12 +44,20 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // Cookies carry the JWTs, so CSRF is enforced with the
+                // double-submit pattern. csrf.spa() is Spring Security 7's
+                // dedicated setup for JWT-cookie SPAs: XSRF-TOKEN cookie plus
+                // X-XSRF-TOKEN header echo, BREACH-safe token handling, and a
+                // fresh token cookie re-issued whenever authentication
+                // succeeds (every request for a stateless JWT filter).
+                .csrf(csrf -> csrf.spa())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/auth/register", "/auth/login", "/auth/refresh", "/h2-console/**").permitAll()
+                        .requestMatchers(
+                                "/auth/register", "/auth/login", "/auth/refresh",
+                                "/auth/logout", "/auth/csrf", "/h2-console/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex

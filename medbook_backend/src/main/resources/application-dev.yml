@@ -17,3 +17,9 @@ logging:
   level:
     org.hibernate.SQL: DEBUG
     org.springframework.security: DEBUG
+
+app:
+  bootstrap:
+    admin:
+      email: admin@medbook.local
+      password: Admin@12345

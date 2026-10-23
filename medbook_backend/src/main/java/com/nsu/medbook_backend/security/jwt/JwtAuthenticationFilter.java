@@ -1,6 +1,7 @@
 package com.nsu.medbook_backend.security.jwt;
 
 import com.nsu.medbook_backend.security.UserDetailsServiceImpl;
+import com.nsu.medbook_backend.security.cookie.AuthCookieService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,6 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsServiceImpl userDetailsService;
+    private final AuthCookieService authCookieService;
 
     @Override
     protected void doFilterInternal(
@@ -56,7 +58,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * The HttpOnly access cookie is the primary credential for the SPA; the
+     * Authorization header is kept as a fallback for non-browser clients.
+     */
     private String resolveToken(HttpServletRequest request) {
+        String cookieToken = authCookieService.extractAccessToken(request);
+        if (cookieToken != null) {
+            return cookieToken;
+        }
         String header = request.getHeader(AUTHORIZATION_HEADER);
         if (StringUtils.hasText(header) && header.startsWith(BEARER_PREFIX)) {
             return header.substring(BEARER_PREFIX.length());
