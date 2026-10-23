@@ -1,13 +1,21 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
-# === Backend (Spring Boot / Java) ===
-HELP.md
+# === Build outputs ===
 target/
+dist/
+tmp/
+out-tsc/
+bazel-out/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# === Java / Spring Boot ===
+HELP.md
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+uploads/
 
-### STS ###
+### STS / Spring Tool Suite ###
 .apt_generated
 .classpath
 .factorypath
@@ -16,57 +24,17 @@ target/
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
-/dist/
 /nbdist/
 /.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
-.vscode/
 
 # === Frontend (Angular / Node) ===
-# Compiled output
-dist/
-tmp/
-out-tsc/
-bazel-out/
-
-# Node
+.angular/
 node_modules/
 npm-debug.log
 yarn-error.log
-
-# IDEs and editors
-.idea/
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
-
-# Visual Studio Code
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/mcp.json
-.history/*
-
-# Miscellaneous
-/.angular/cache
 .sass-cache/
 /connect.lock
 /coverage
@@ -75,6 +43,22 @@ testem.log
 /typings
 __screenshots__/
 
-# System files
+# === IDEs and editors ===
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.history/*
+.c9/
+*.launch
+*.sublime-workspace
+
+# === Environment / secrets ===
+.env
+.env.*
+!.env.example
+
+# === OS files ===
 .DS_Store
 Thumbs.db
