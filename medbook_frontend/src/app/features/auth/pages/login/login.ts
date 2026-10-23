@@ -62,7 +62,7 @@ export class LoginComponent {
     this.loading.set(true);
     this.error.set('');
     this.auth.login({ email: this.email, password: this.password }).subscribe({
-      next: () => this.router.navigate(['/dashboard']),
+      next: (res) => this.router.navigate([res.user.role === 'ADMIN' ? '/admin' : '/dashboard']),
       error: (err) => this.error.set(err.error?.message || 'Invalid credentials'),
       complete: () => this.loading.set(false),
     });

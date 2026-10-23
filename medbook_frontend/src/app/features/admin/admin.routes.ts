@@ -4,7 +4,7 @@ import { roleGuard } from '../../core/guards/role.guard';
 export default [
   {
     path: '',
-    canActivate: [() => roleGuard('ADMIN')],
-    loadComponent: () => import('./pages/admin-dashboard/admin-dashboard').then((m) => m.AdminDashboardComponent),
+    canActivate: [roleGuard('ADMIN')],
+    loadComponent: () => import('./pages/users/users').then((m) => m.UsersComponent),
   },
 ] as Routes;

@@ -1,15 +1,11 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, finalize, firstValueFrom, share, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { User } from '../models/user.model';
 import { API } from '../constants/api.constants';
 
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  tokenType: string;
-  expiresIn: number;
   user: User;
 }
 
@@ -23,12 +19,15 @@ export interface RegisterRequest {
   password: string;
   firstName: string;
   lastName: string;
+  phone?: string;
 }
 
-const TOKEN_KEY = 'medbook_access_token';
-const REFRESH_TOKEN_KEY = 'medbook_refresh_token';
-const USER_KEY = 'medbook_current_user';
-
+/**
+ * Cookie-based session management. The server issues the access and refresh
+ * JWTs as HttpOnly cookies (invisible to JavaScript), so this service keeps
+ * no token material anywhere. All requests are sent with credentials and the
+ * CSRF token is echoed by the auth interceptor.
+ */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -38,73 +37,66 @@ export class AuthService {
   readonly isAuthenticated = computed(() => this._currentUser() !== null);
   readonly isAdmin = computed(() => this._currentUser()?.role === 'ADMIN');
 
-  constructor() {
-    this.restoreSession();
+  private refreshInFlight: Observable<AuthResponse> | null = null;
+
+  /**
+   * App bootstrap: prime the CSRF cookie, then resolve the session from the
+   * access cookie via /auth/me. If the access cookie is expired but the
+   * refresh cookie is still valid, the 401 triggers the interceptor's
+   * refresh-and-retry flow and the session is restored transparently.
+   */
+  async bootstrap(): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.get(`${environment.apiUrl}${API.AUTH.CSRF}`, { withCredentials: true }),
+      );
+    } catch {
+      // CSRF priming is best-effort; the token is also refreshed lazily.
+    }
+    try {
+      const user = await firstValueFrom(
+        this.http.get<User>(`${environment.apiUrl}${API.AUTH.ME}`, { withCredentials: true }),
+      );
+      this._currentUser.set(user);
+    } catch {
+      this._currentUser.set(null);
+    }
   }
 
   login(credentials: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${environment.apiUrl}${API.AUTH.LOGIN}`, credentials).pipe(
-      tap((res) => this.handleAuthResponse(res)),
-    );
+    return this.http
+      .post<AuthResponse>(`${environment.apiUrl}${API.AUTH.LOGIN}`, credentials, { withCredentials: true })
+      .pipe(tap((res) => this._currentUser.set(res.user)));
   }
 
   register(data: RegisterRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${environment.apiUrl}${API.AUTH.REGISTER}`, data).pipe(
-      tap((res) => this.handleAuthResponse(res)),
-    );
+    return this.http
+      .post<AuthResponse>(`${environment.apiUrl}${API.AUTH.REGISTER}`, data, { withCredentials: true })
+      .pipe(tap((res) => this._currentUser.set(res.user)));
   }
 
   logout(): void {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    // Best effort: the server clears the cookies even if this call races.
+    this.http.post(`${environment.apiUrl}${API.AUTH.LOGOUT}`, {}, { withCredentials: true }).subscribe({
+      error: () => undefined,
+    });
     this._currentUser.set(null);
   }
 
-  getToken(): string | null {
-    return localStorage.getItem(TOKEN_KEY);
-  }
-
-  getRefreshToken(): string | null {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
-  }
-
-  private handleAuthResponse(res: AuthResponse): void {
-    localStorage.setItem(TOKEN_KEY, res.accessToken);
-    localStorage.setItem(REFRESH_TOKEN_KEY, res.refreshToken);
-    localStorage.setItem(USER_KEY, JSON.stringify(res.user));
-    this._currentUser.set(res.user);
-  }
-
   /**
-   * Restores the session from localStorage. The JWT only carries the subject
-   * claim, so the user profile is persisted alongside the tokens. A stored
-   * token that has already expired is discarded.
+   * Single-flight refresh: concurrent 401s share one /auth/refresh call so
+   * parallel retries cannot stampede the endpoint or race the cookie rotation.
    */
-  private restoreSession(): void {
-    const token = this.getToken();
-    const storedUser = localStorage.getItem(USER_KEY);
-    if (!token || !storedUser) return;
-
-    if (this.isTokenExpired(token)) {
-      this.logout();
-      return;
+  refreshSession(): Observable<AuthResponse> {
+    if (!this.refreshInFlight) {
+      this.refreshInFlight = this.http
+        .post<AuthResponse>(`${environment.apiUrl}${API.AUTH.REFRESH}`, {}, { withCredentials: true })
+        .pipe(
+          tap((res) => this._currentUser.set(res.user)),
+          finalize(() => (this.refreshInFlight = null)),
+          share(),
+        );
     }
-
-    try {
-      this._currentUser.set(JSON.parse(storedUser) as User);
-    } catch {
-      this.logout();
-    }
-  }
-
-  private isTokenExpired(token: string): boolean {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1])) as { exp?: number };
-      if (!payload.exp) return false;
-      return payload.exp * 1000 <= Date.now();
-    } catch {
-      return true;
-    }
+    return this.refreshInFlight;
   }
 }

@@ -5,6 +5,7 @@ export const API = {
     REFRESH: '/auth/refresh',
     LOGOUT: '/auth/logout',
     ME: '/auth/me',
+    CSRF: '/auth/csrf',
   },
   USERS: '/users',
   DOCTORS: '/doctors',
@@ -16,6 +17,9 @@ export const API = {
   PAYMENTS: '/payments',
   FILES: '/files',
   DASHBOARD: '/dashboard',
-  ADMIN: '/admin',
+  ADMIN: {
+    ROOT: '/admin',
+    USERS: '/admin/users',
+  },
   NOTIFICATIONS: '/notifications',
 } as const;

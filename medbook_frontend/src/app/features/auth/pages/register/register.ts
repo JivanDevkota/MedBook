@@ -41,6 +41,13 @@ import { AuthService } from '../../../../core/services/auth.service';
             class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
           />
         </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium text-gray-700">Phone <span class="text-gray-400">(optional)</span></label>
+          <input
+            type="tel" name="phone" [(ngModel)]="phone" placeholder="+94771234567"
+            class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
+          />
+        </div>
         @if (error()) {
           <p class="text-sm text-red-600">{{ error() }}</p>
         }
@@ -66,16 +73,25 @@ export class RegisterComponent {
   protected lastName = '';
   protected email = '';
   protected password = '';
+  protected phone = '';
   protected loading = signal(false);
   protected error = signal('');
 
   onSubmit(): void {
     this.loading.set(true);
     this.error.set('');
-    this.auth.register({ firstName: this.firstName, lastName: this.lastName, email: this.email, password: this.password }).subscribe({
-      next: () => this.router.navigate(['/dashboard']),
-      error: (err) => this.error.set(err.error?.message || 'Registration failed'),
-      complete: () => this.loading.set(false),
-    });
+    this.auth
+      .register({
+        firstName: this.firstName,
+        lastName: this.lastName,
+        email: this.email,
+        password: this.password,
+        phone: this.phone || undefined,
+      })
+      .subscribe({
+        next: () => this.router.navigate(['/dashboard']),
+        error: (err) => this.error.set(err.error?.message || 'Registration failed'),
+        complete: () => this.loading.set(false),
+      });
   }
 }
