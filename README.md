@@ -92,18 +92,43 @@ npm start                         # http://localhost:4200, proxies to the API UR
 | `CORS_ALLOWED_ORIGINS`       | `http://localhost:4200`        | Comma-separated allowed origins  |
 | `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` | local MySQL        | Prod datasource                  |
 | `UPLOAD_DIR`                 | `uploads`                      | File storage directory           |
+| `COOKIE_SECURE`              | `false`                        | Set `true` when the API is served over HTTPS |
+| `COOKIE_SAME_SITE`           | `Lax`                          | `Lax` (same-site SPA) or `None` (cross-site, requires Secure) |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | unset (dev seeds defaults) | Bootstrap admin account          |
+
+## Authentication & security
+
+The SPA authenticates with **HttpOnly cookies** — token material is never exposed to JavaScript:
+
+- `MEDBOOK_ACCESS_TOKEN` — short-lived JWT (15 min), `HttpOnly`, scoped to the API context path `/api/v1`
+- `MEDBOOK_REFRESH_TOKEN` — long-lived JWT (7 days), `HttpOnly`, scoped to `/api/v1/auth` so it only travels on `/auth/refresh` and `/auth/logout`; it is **rotated on every refresh**
+- Because cookies authenticate requests, CSRF is enforced with Spring Security 7's `csrf.spa()` double-submit setup: the `XSRF-TOKEN` cookie is echoed in the `X-XSRF-TOKEN` header by the SPA, and a fresh token is re-issued as authentication succeeds
+- The frontend keeps no tokens in localStorage; the session is resolved at boot via `GET /auth/me` and expired access cookies are refreshed transparently by a single-flight interceptor
+
+**Role model:** `ADMIN`, `DOCTOR`, `PATIENT`, `STAFF`.
+
+- Public self-registration (`POST /auth/register`) always creates a `PATIENT` account
+- Privileged roles are provisioned only through the admin module: `POST /admin/users` (ADMIN-only) creates users with any role, requiring a medical license number for doctors
+- `/admin/**` requires `ADMIN`; the Angular admin area is guarded by the same role check and hidden from non-admin navigation
+- Admins can enable/disable accounts (`PATCH /admin/users/{id}/status`); disabled accounts cannot log in
+
+A bootstrap admin is seeded in the `dev` profile (`admin@medbook.local` / `Admin@12345`, configurable via `app.bootstrap.admin.*`). Keep `app.bootstrap.admin.email` unset in production.
 
 ## API overview
 
 Base path: `/api/v1`
 
-| Endpoint          | Method | Description                        |
-|-------------------|--------|------------------------------------|
-| `/auth/register`  | POST   | Create a patient account           |
-| `/auth/login`     | POST   | Authenticate, returns access + refresh tokens |
-| `/auth/refresh`   | POST   | Exchange refresh token for new tokens |
-| `/auth/me`        | GET    | Current authenticated user         |
-| `/auth/logout`    | POST   | Client-side token discard          |
+| Endpoint               | Method | Auth     | Description                                     |
+|------------------------|--------|----------|-------------------------------------------------|
+| `/auth/csrf`           | GET    | public   | Prime the CSRF cookie for the SPA               |
+| `/auth/register`       | POST   | public   | Self-register a patient account                 |
+| `/auth/login`          | POST   | public   | Authenticate; sets HttpOnly auth cookies        |
+| `/auth/refresh`        | POST   | refresh cookie | Rotate access + refresh cookies           |
+| `/auth/me`             | GET    | user     | Current authenticated user                      |
+| `/auth/logout`         | POST   | public   | Clear auth cookies                              |
+| `/admin/users`         | GET    | ADMIN    | Paged user list with search                     |
+| `/admin/users`         | POST   | ADMIN    | Create a user with any role                     |
+| `/admin/users/{id}/status` | PATCH | ADMIN | Enable or disable an account                    |
 
 Domain endpoints for doctors, patients, appointments, schedules, medical records, prescriptions, payments, notifications, and files are scaffolded as entities/repositories and DTOs; controllers and services land with each feature.
 
@@ -113,3 +138,4 @@ Domain endpoints for doctors, patients, appointments, schedules, medical records
 - Entities extend `BaseEntity` for audit columns (`created_at`, `updated_at`, `created_by`, `updated_by`) populated by JPA auditing.
 - All API errors use a common `ErrorResponse` shape produced by `GlobalExceptionHandler`.
 - Validation annotations live on entities and request DTOs; reusable rules (`@ValidPhone`, `@FutureAppointment`) are in `common/validation`.
+- Auth is cookie-based (HttpOnly) with CSRF double-submit — new endpoints must not accept tokens in request/response bodies.
