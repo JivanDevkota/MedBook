@@ -37,7 +37,7 @@ import { AuthService } from '../../../../core/services/auth.service';
         <div>
           <label class="mb-1 block text-sm font-medium text-gray-700">Password</label>
           <input
-            type="password" name="password" [(ngModel)]="password" required minlength="6"
+            type="password" name="password" [(ngModel)]="password" required minlength="8"
             class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
           />
         </div>

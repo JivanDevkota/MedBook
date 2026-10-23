@@ -1,10 +1,12 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
 
 interface NavItem {
   label: string;
   route: string;
   icon: string;
+  adminOnly?: boolean;
 }
 
 @Component({
@@ -17,7 +19,7 @@ interface NavItem {
         <span class="text-xl font-bold text-blue-600">MedBook</span>
       </div>
       <nav class="flex-1 space-y-1 px-3 py-4">
-        @for (item of navItems; track item.route) {
+        @for (item of visibleNavItems(); track item.route) {
           <a
             [routerLink]="item.route"
             routerLinkActive="bg-blue-50 text-blue-700"
@@ -32,6 +34,8 @@ interface NavItem {
   `,
 })
 export class SidebarComponent {
+  private readonly auth = inject(AuthService);
+
   protected readonly navItems: NavItem[] = [
     { label: 'Dashboard', route: '/dashboard', icon: '📊' },
     { label: 'Appointments', route: '/appointments', icon: '📅' },
@@ -42,6 +46,10 @@ export class SidebarComponent {
     { label: 'Prescriptions', route: '/prescriptions', icon: '💊' },
     { label: 'Payments', route: '/payments', icon: '💳' },
     { label: 'Notifications', route: '/notifications', icon: '🔔' },
-    { label: 'Admin', route: '/admin', icon: '⚙️' },
+    { label: 'Admin', route: '/admin', icon: '⚙️', adminOnly: true },
   ];
+
+  protected visibleNavItems(): NavItem[] {
+    return this.navItems.filter((item) => !item.adminOnly || this.auth.isAdmin());
+  }
 }
