@@ -1,11 +1,20 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   template: `
     <div class="space-y-6">
-      <h1 class="text-2xl font-bold text-gray-800">Dashboard</h1>
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800">
+          Welcome back, {{ auth.currentUser()?.firstName }}!
+        </h1>
+        <p class="text-sm text-gray-500">
+          You are signed in as
+          <span class="font-semibold text-blue-600">{{ auth.currentUser()?.role }}</span>.
+        </p>
+      </div>
       <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <div class="rounded-xl border border-blue-200 bg-blue-50 p-6">
           <p class="text-sm text-blue-600">Total Appointments</p>
@@ -27,4 +36,6 @@ import { Component } from '@angular/core';
     </div>
   `,
 })
-export class DashboardComponent {}
+export class DashboardComponent {
+  protected readonly auth = inject(AuthService);
+}

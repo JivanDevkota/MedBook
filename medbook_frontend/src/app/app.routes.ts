@@ -1,10 +1,13 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { guestGuard } from './core/guards/guest.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { roleHomeRedirect } from './core/guards/role-home.guard';
 
 export const routes: Routes = [
   {
     path: 'auth',
+    canActivate: [guestGuard],
     loadChildren: () => import('./features/auth/auth.routes'),
   },
   {
@@ -62,6 +65,6 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard('ADMIN')],
     loadChildren: () => import('./features/admin/admin.routes'),
   },
-  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
-  { path: '**', redirectTo: '/dashboard' },
+  { path: '', canActivate: [roleHomeRedirect], children: [] },
+  { path: '**', canActivate: [roleHomeRedirect], children: [] },
 ];

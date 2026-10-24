@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../core/services/auth.service';
+import { homeForRole } from '../../../../core/utils/role.utils';
 
 @Component({
   selector: 'app-register',
@@ -89,7 +90,7 @@ export class RegisterComponent {
         phone: this.phone || undefined,
       })
       .subscribe({
-        next: () => this.router.navigate(['/dashboard']),
+        next: (res) => this.router.navigateByUrl(homeForRole(res.user.role)),
         error: (err) => this.error.set(err.error?.message || 'Registration failed'),
         complete: () => this.loading.set(false),
       });

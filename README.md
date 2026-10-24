@@ -46,7 +46,17 @@ Each backend domain package follows the same layout: `entity/`, `repository/`, a
 
 - JDK 17+
 - Node.js 20+ and npm
-- MySQL 8+ (only for the `prod` profile)
+- MySQL 8+ (used by the `dev` and `prod` profiles; tests run on in-memory H2)
+
+## One-time MySQL setup
+
+Create the database and the application account (the backend never connects as root):
+
+```bash
+"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql" -u root -p < docs/mysql-setup.sql
+```
+
+That creates the `medbook` database and a `medbook`/`medbook` app user scoped to it. There is no separate roles table to seed: user roles (`ADMIN`, `DOCTOR`, `PATIENT`, `STAFF`) are stored on each `users` row and every table is created automatically by Hibernate on first boot. The first boot also seeds a bootstrap admin (`admin@medbook.local` / `Admin@12345` in dev).
 
 ## Getting started
 
@@ -54,21 +64,10 @@ Each backend domain package follows the same layout: `entity/`, `repository/`, a
 
 ```bash
 cd medbook_backend
-./mvnw spring-boot:run            # dev profile: H2 in-memory, h2-console at /api/v1/h2-console
+./mvnw spring-boot:run            # dev profile: MySQL on localhost:3306
 ```
 
-The API starts on `http://localhost:8080/api/v1`.
-
-To run against MySQL, use the prod profile with environment variables:
-
-```bash
-SPRING_PROFILES_ACTIVE=prod \
-DB_URL=jdbc:mysql://localhost:3306/medbook \
-DB_USERNAME=medbook \
-DB_PASSWORD=secret \
-JWT_SECRET=<base64-encoded-secret> \
-./mvnw spring-boot:run
-```
+The API starts on `http://localhost:8080/api/v1`. Override any database setting with environment variables (`DB_USERNAME`, `DB_PASSWORD`, `DB_HOST`, ...) — see the configuration table below.
 
 ### Frontend
 
@@ -84,17 +83,29 @@ npm start                         # http://localhost:4200, proxies to the API UR
 
 | Environment variable         | Default                        | Purpose                          |
 |------------------------------|--------------------------------|----------------------------------|
-| `SPRING_PROFILES_ACTIVE`     | `dev`                          | `dev` (H2) or `prod` (MySQL)     |
+| `SPRING_PROFILES_ACTIVE`     | `dev`                          | `dev` (local MySQL) or `prod`    |
 | `SERVER_PORT`                | `8080`                         | HTTP port                        |
 | `JWT_SECRET`                 | dev fallback                   | Base64 HMAC secret (≥ 32 bytes)  |
 | `JWT_ACCESS_TOKEN_EXPIRATION`| `900000` (15 min)              | Access token TTL in ms           |
 | `JWT_REFRESH_TOKEN_EXPIRATION`| `604800000` (7 days)          | Refresh token TTL in ms          |
 | `CORS_ALLOWED_ORIGINS`       | `http://localhost:4200`        | Comma-separated allowed origins  |
-| `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` | local MySQL        | Prod datasource                  |
+| `DB_HOST` / `DB_PORT` / `DB_NAME` | `localhost` / `3306` / `medbook` | MySQL connection      |
+| `DB_USERNAME` / `DB_PASSWORD` | `medbook` / `medbook`         | App database account             |
 | `UPLOAD_DIR`                 | `uploads`                      | File storage directory           |
 | `COOKIE_SECURE`              | `false`                        | Set `true` when the API is served over HTTPS |
 | `COOKIE_SAME_SITE`           | `Lax`                          | `Lax` (same-site SPA) or `None` (cross-site, requires Secure) |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | unset (dev seeds defaults) | Bootstrap admin account          |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | dev seeds `admin@medbook.local` | Bootstrap admin account  |
+
+### Role-based navigation
+
+Each role lands on its own page after login and sees only its relevant navigation:
+
+| Role    | Landing page    | Sidebar items                                        |
+|---------|-----------------|------------------------------------------------------|
+| ADMIN   | `/admin`        | everything incl. User Management                     |
+| DOCTOR  | `/appointments` | dashboard, appointments, patients, schedule, records, prescriptions, files |
+| STAFF   | `/appointments` | dashboard, appointments, doctors, patients, schedule, payments |
+| PATIENT | `/dashboard`    | dashboard, appointments, doctors, records, prescriptions, payments, files |
 
 ## Authentication & security
 

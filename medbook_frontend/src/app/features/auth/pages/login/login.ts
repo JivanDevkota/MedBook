@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../core/services/auth.service';
+import { homeForRole } from '../../../../core/utils/role.utils';
 
 @Component({
   selector: 'app-login',
@@ -62,7 +63,7 @@ export class LoginComponent {
     this.loading.set(true);
     this.error.set('');
     this.auth.login({ email: this.email, password: this.password }).subscribe({
-      next: (res) => this.router.navigate([res.user.role === 'ADMIN' ? '/admin' : '/dashboard']),
+      next: (res) => this.router.navigateByUrl(homeForRole(res.user.role)),
       error: (err) => this.error.set(err.error?.message || 'Invalid credentials'),
       complete: () => this.loading.set(false),
     });
