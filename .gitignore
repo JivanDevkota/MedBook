@@ -8,6 +8,9 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+# Local file database (H2 file mode)
+medbook_backend/data/
+
 # === Java / Spring Boot ===
 HELP.md
 .mvn/wrapper/maven-wrapper.jar
